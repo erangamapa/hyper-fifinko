@@ -552,7 +552,6 @@ function dropBall(lane, side, team){
     const sq=Math.sin(tt*Math.PI);
     ball.sx=1+0.18*sq;ball.sy=1-0.18*sq;
     ball.trail.push({x:ball.x,y:ball.y});if(ball.trail.length>11)ball.trail.shift();
-    followBall();
     requestRender();
     if(t>=1){ // crossed a peg row -> strike fx
       spark(ball.x,ball.y,color,7,3.2); ripple(ball.x,ball.y,color); pegPing();
@@ -576,14 +575,6 @@ function computePath(sx,sy,ex,ey,side){
   }
   pts.push({x:ex,y:ey});
   return pts;
-}
-
-function followBall(){
-  // keep ball roughly centered in the scroll viewport on small screens
-  const vh=scrollEl.clientHeight, st=scrollEl.scrollTop;
-  const by=ball.y;
-  if(by < st+vh*0.25) scrollEl.scrollTop = by - vh*0.4;
-  else if(by > st+vh*0.75) scrollEl.scrollTop = by - vh*0.6;
 }
 
 function landBall(lane,side,team,color){
