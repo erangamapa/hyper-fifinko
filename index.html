@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hyperfifinko — Stake the Path to Glory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E0D; --teal-deep:#072723; --teal:#0E3B34;
+    --mint:#50D2C1; --mint-dim:#2c8a7e; --gold:#D4A23A;
+    --red:#E63946; --blue:#3A7CA5; --bone:#F4F1EA; --muted:#7d918c;
+    --line:rgba(80,210,193,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--bone);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(80,210,193,.10), transparent 60%),
+      radial-gradient(900px 500px at 50% 120%, rgba(212,162,58,.07), transparent 55%),
+      var(--bg);
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:18px 16px 40px}
+
+  /* Header */
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .badge{font-family:Anton;font-size:32px;line-height:.8;letter-spacing:1px;
+    background:linear-gradient(160deg,var(--mint),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand h1{font-family:Anton;font-weight:400;font-size:17px;letter-spacing:2px;text-transform:uppercase}
+  .brand p{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+  .wallet{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:12px;
+    border:1px solid var(--line);border-radius:999px;padding:8px 14px;background:rgba(14,59,52,.35)}
+  .wallet .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint)}
+  .wallet b{color:var(--mint)}
+
+  /* Round selector */
+  .rounds{display:flex;gap:7px;overflow-x:auto;padding:4px 0 8px;margin-bottom:12px;scrollbar-width:thin}
+  .round{flex:0 0 auto;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:9px 14px;
+    background:rgba(7,39,35,.5);transition:.15s;min-width:118px}
+  .round:hover{transform:translateY(-2px)}
+  .round .nm{font-family:Anton;font-weight:400;font-size:13px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+  .round .meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px}
+  .round.active{border-color:var(--mint);background:rgba(80,210,193,.14);box-shadow:0 0 22px -8px var(--mint)}
+  .round.active .nm{color:var(--mint)}
+  .round.locked{opacity:.4}
+
+  .layout{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+  /* Board */
+  .board-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(14,59,52,.4),rgba(7,39,35,.25));position:relative}
+  .board-head{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;border-bottom:1px solid var(--line)}
+  .board-head .t{font-family:Anton;font-weight:400;letter-spacing:2px;font-size:13px;text-transform:uppercase}
+  .board-head .hint{font-size:11px;color:var(--muted)}
+  .board-scroll{position:relative;overflow-y:auto;overflow-x:hidden;max-height:72vh}
+  canvas{display:block;touch-action:pan-y}
+
+  /* Stake panel */
+  .panel{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(14,59,52,.45),rgba(7,39,35,.3));padding:16px;position:sticky;top:12px}
+  .panel h3{font-family:Anton;font-weight:400;letter-spacing:2px;font-size:13px;text-transform:uppercase;margin-bottom:12px}
+  .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .row .k{color:var(--muted)} .row .v{font-family:'JetBrains Mono',monospace;font-weight:500;text-align:right}
+  .pick-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(80,210,193,.12);border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:12px;max-width:170px}
+  .pick-pill .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stake-in{margin:13px 0 6px}
+  .stake-in label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+  .stake-field{display:flex;align-items:center;gap:8px;margin-top:7px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.25)}
+  .stake-field input{flex:1;background:none;border:none;outline:none;color:var(--bone);font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;width:100%}
+  .stake-field .usdc{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--mint);font-weight:700}
+  .chips{display:flex;gap:6px;margin:8px 0 4px}
+  .chips button{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 0;border-radius:8px;border:1px solid var(--line);background:rgba(7,39,35,.6);color:var(--bone);cursor:pointer}
+  .chips button:hover{border-color:var(--mint)}
+  .payout{margin-top:11px;padding:11px;border-radius:12px;background:rgba(212,162,58,.1);border:1px solid rgba(212,162,58,.3)}
+  .payout .big{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--gold)}
+  .payout .sm{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .cta{margin-top:12px;width:100%;border:none;border-radius:12px;padding:13px;cursor:pointer;
+    font-family:Anton;font-weight:400;letter-spacing:2px;font-size:14px;text-transform:uppercase;
+    background:linear-gradient(120deg,var(--mint),var(--mint-dim));color:#06201c;transition:.15s}
+  .cta:hover{filter:brightness(1.08)}
+  .cta:disabled{background:rgba(125,145,140,.25);color:var(--muted);cursor:not-allowed;filter:none}
+  .picks-list{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .picks-list .ph{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  .picks-list .pk{display:flex;align-items:center;gap:7px;font-size:12px;padding:4px 0}
+  .picks-list .pk .fl{font-size:14px} .picks-list .pk .rd{margin-left:auto;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px}
+  .note{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;text-align:center}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);
+    background:var(--teal);border:1px solid var(--mint);border-radius:12px;padding:12px 18px;font-size:13px;
+    box-shadow:0 14px 40px -10px rgba(0,0,0,.7);transition:transform .35s cubic-bezier(.2,1.3,.4,1);z-index:50;max-width:90vw}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast b{color:var(--mint)}
+  .flash{position:absolute;inset:0;pointer-events:none;background:rgba(80,210,193,.0);transition:background .25s}
+  @media (prefers-reduced-motion: reduce){.toast{transition:none}}
+
+  /* ---------- Themed scrollbars ---------- */
+  .rounds, .board-scroll{
+    scrollbar-width:thin;
+    scrollbar-color:var(--mint-dim) transparent;
+  }
+  .rounds::-webkit-scrollbar{height:7px}
+  .board-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .rounds::-webkit-scrollbar-track,
+  .board-scroll::-webkit-scrollbar-track{
+    background:rgba(7,39,35,.4);border-radius:999px;
+  }
+  .rounds::-webkit-scrollbar-thumb,
+  .board-scroll::-webkit-scrollbar-thumb{
+    background:linear-gradient(var(--mint-dim),var(--teal));
+    border-radius:999px;border:2px solid transparent;background-clip:padding-box;
+    transition:background .2s;
+  }
+  .rounds::-webkit-scrollbar-thumb:hover,
+  .board-scroll::-webkit-scrollbar-thumb:hover{
+    background:linear-gradient(var(--mint),var(--mint-dim));background-clip:padding-box;
+  }
+  .rounds::-webkit-scrollbar-corner,
+  .board-scroll::-webkit-scrollbar-corner{background:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="badge">26</div>
+      <div><h1>Hyperfifinko</h1><p>Tap · Drop · Stake the Path</p></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="sound" title="Toggle sound" style="cursor:pointer;border:1px solid var(--line);background:rgba(14,59,52,.35);color:var(--mint);border-radius:999px;width:38px;height:38px;font-size:16px">🔊</button>
+      <div class="wallet"><span class="dot"></span>Hyperliquid · <b id="bal">1,000.00</b> USDC</div>
+    </div>
+  </header>
+
+  <div class="rounds" id="rounds"></div>
+
+  <div class="layout">
+    <div class="board-card">
+      <div class="board-head">
+        <span class="t" id="boardTitle">Round of 32</span>
+        <span class="hint" id="boardHint">Tap a team flag — its ball drops into the matchup bucket</span>
+      </div>
+      <div class="board-scroll" id="scroll">
+        <canvas id="plinko"></canvas>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <h3>Bet Slip</h3>
+      <div class="row"><span class="k">Round</span><span class="v" id="pRound">Round of 32</span></div>
+      <div class="row"><span class="k">Pick</span><span class="v" id="pPick"><span class="pick-pill"><span class="nm">none</span></span></span></div>
+      <div class="row"><span class="k">Odds</span><span class="v" id="pOdds">—</span></div>
+
+      <div class="stake-in">
+        <label>Stake</label>
+        <div class="stake-field">
+          <input id="stake" type="number" min="0" step="1" value="25" inputmode="decimal"/>
+          <span class="usdc">USDC</span>
+        </div>
+        <div class="chips">
+          <button data-amt="10">10</button><button data-amt="25">25</button>
+          <button data-amt="100">100</button><button data-amt="max">MAX</button>
+        </div>
+      </div>
+
+      <div class="payout"><div class="sm">Potential payout</div><div class="big" id="payout">—</div></div>
+      <button class="cta" id="confirm" disabled>Lock in pick</button>
+
+      <div class="picks-list" id="picksList" style="display:none">
+        <div class="ph">Your bracket so far</div>
+        <div id="picksBody"></div>
+      </div>
+      <div class="note">Tap a flag to drop. Winners advance to the next round's rails. Settlement on Hyperliquid · demo balance.</div>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- Audio engine (synthesized, no assets) ---------------- */
+let AC=null, muted=false;
+function audio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return AC;}
+function ping(freq,dur=0.08,type='triangle',gain=0.18){
+  const ac=audio();if(!ac||muted)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type;o.frequency.value=freq;
+  o.connect(g);g.connect(ac.destination);
+  const t=ac.currentTime;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(gain,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.start(t);o.stop(t+dur+0.02);
+}
+function thud(){
+  const ac=audio();if(!ac||muted)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine';o.frequency.setValueAtTime(180,ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(60,ac.currentTime+0.18);
+  o.connect(g);g.connect(ac.destination);
+  const t=ac.currentTime;
+  g.gain.setValueAtTime(0.32,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);
+  o.start(t);o.stop(t+0.28);
+}
+function chime(gold){
+  const ac=audio();if(!ac||muted)return;
+  const notes=gold?[523,659,784,1047]:[440,554,659];
+  notes.forEach((f,i)=>setTimeout(()=>ping(f,0.5,'triangle',0.16),i*70));
+}
+function pegPing(){ping(900+Math.random()*500,0.05,'square',0.06);}
+
+/* ---------------- Particles ---------------- */
+let particles=[];
+function spark(x,y,color,n=8,spd=3){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, s=spd*(0.4+Math.random());
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,
+      life:1,decay:0.025+Math.random()*0.03,r:1.5+Math.random()*2.5,color});
+  }
+}
+function ripple(x,y,color){particles.push({ring:true,x,y,r:2,max:26+Math.random()*10,life:1,decay:0.06,color});}
+function burst(x,y,color){spark(x,y,color,22,5);ripple(x,y,color);ripple(x,y,'#ffffff');}
+function stepParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    if(p.ring){p.r+=(p.max-p.r)*0.18;p.life-=p.decay;}
+    else{p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.vx*=0.98;p.life-=p.decay;}
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    if(p.ring){
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);
+      ctx.strokeStyle=hexA(p.color,Math.max(0,p.life)*0.6);ctx.lineWidth=2;ctx.stroke();
+    }else{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,7);
+      ctx.fillStyle=hexA(p.color,Math.max(0,p.life));ctx.fill();
+    }
+  });
+}
+
+/* ---------------- Teams pool (Round of 32 — 32 teams) ---------------- */
+const POOL=[
+  ['Italy','🇮🇹'],['Wales','🏴'],['N.Ireland','🇬🇧'],['Bosnia','🇧🇦'],
+  ['Ukraine','🇺🇦'],['Poland','🇵🇱'],['Sweden','🇸🇪'],['Albania','🇦🇱'],
+  ['Türkiye','🇹🇷'],['Slovakia','🇸🇰'],['Romania','🇷🇴'],['Kosovo','🇽🇰'],
+  ['Denmark','🇩🇰'],['Czechia','🇨🇿'],['N.Macedonia','🇲🇰'],['Ireland','🇮🇪'],
+  ['France','🇫🇷'],['Croatia','🇭🇷'],['Spain','🇪🇸'],['Serbia','🇷🇸'],
+  ['Portugal','🇵🇹'],['Austria','🇦🇹'],['England','🏴'],['Switzerland','🇨🇭'],
+  ['Germany','🇩🇪'],['Hungary','🇭🇺'],['Belgium','🇧🇪'],['Greece','🇬🇷'],
+  ['Netherlands','🇳🇱'],['Norway','🇳🇴'],['Scotland','🏴'],['Slovenia','🇸🇮'],
+];
+function mkTeam(t){return {nm:t[0],f:t[1],od:+(1.4+Math.random()*2.2).toFixed(2)};}
+
+const ROUNDS=[
+  {key:'r32',nm:'Round of 32',games:16},
+  {key:'r16',nm:'Round of 16',games:8},
+  {key:'r8', nm:'Round of 8', games:4},
+  {key:'qf', nm:'Quarter-finals',games:2}, // 4 buckets? -> see note
+];
+/* Bracket sizing requested:
+   R32:32 buckets? The user listed buckets 32/16/8/4/2/1 per option.
+   We treat "buckets = games in that round". 32 teams -> 16 games.
+   To honor the requested bucket counts we map each option directly: */
+const STAGES=[
+  {key:'s32',nm:'Round of 32',buckets:16,teams:32},
+  {key:'s16',nm:'Round of 16',buckets:8, teams:16},
+  {key:'s8', nm:'Round of 8', buckets:4, teams:8},
+  {key:'sqf',nm:'Quarter-finals',buckets:2,teams:4},
+  {key:'ssf',nm:'Semi-finals',buckets:1,teams:2},
+  {key:'sf', nm:'Final',buckets:1,teams:2},
+];
+
+/* ---------------- State ---------------- */
+let state={
+  stageIdx:0, balance:1000, animating:false,
+  // per-stage rosters: rosters[i] = array of team objects (length = teams)
+  rosters:[], picks:[], // picks[stageIdx] = {matchup, team}
+};
+function initRosters(){
+  // stage 0 from pool, later stages derived from picks (or seeded if not yet played)
+  const r=POOL.slice(0,32).map(mkTeam);
+  state.rosters=[r];
+}
+initRosters();
+
+/* ---------------- DOM ---------------- */
+const $=s=>document.querySelector(s);
+const roundsEl=$('#rounds'),boardTitle=$('#boardTitle'),boardHint=$('#boardHint');
+const pRound=$('#pRound'),pPick=$('#pPick'),pOdds=$('#pOdds'),payoutEl=$('#payout');
+const stakeEl=$('#stake'),confirmBtn=$('#confirm'),balEl=$('#bal'),toast=$('#toast');
+const scrollEl=$('#scroll'),picksList=$('#picksList'),picksBody=$('#picksBody');
+
+/* ---------------- Round selector ---------------- */
+function renderRounds(){
+  roundsEl.innerHTML='';
+  STAGES.forEach((s,i)=>{
+    const playable = i<=maxUnlockedStage();
+    const el=document.createElement('div');
+    el.className='round'+(i===state.stageIdx?' active':'')+(playable?'':' locked');
+    el.innerHTML=`<div class="nm">${s.nm}</div><div class="meta">${s.buckets} bucket${s.buckets>1?'s':''} · ${s.teams} teams</div>`;
+    if(playable) el.addEventListener('click',()=>selectStage(i));
+    roundsEl.appendChild(el);
+  });
+}
+function maxUnlockedStage(){
+  // a stage is unlocked once the previous stage is fully picked
+  let unlocked=0;
+  for(let i=0;i<STAGES.length-1;i++){
+    if(state.picks[i] && state.picks[i].length===STAGES[i].buckets) unlocked=i+1; else break;
+  }
+  return unlocked;
+}
+function selectStage(i){
+  if(state.animating)return;
+  state.stageIdx=i;
+  ensureRoster(i);
+  boardTitle.textContent=STAGES[i].nm;
+  pRound.textContent=STAGES[i].nm;
+  renderRounds();layout();updateSlip();renderPicks();
+}
+function ensureRoster(i){
+  if(state.rosters[i])return;
+  // derive from previous stage picks (winners advance)
+  const prevPicks=state.picks[i-1]||[];
+  const winners=prevPicks.map(p=>p.team);
+  // if incomplete, pad with placeholders so board still renders
+  while(winners.length<STAGES[i].teams) winners.push({nm:'TBD',f:'⚪',od:2.0});
+  state.rosters[i]=winners.slice(0,STAGES[i].teams).map(t=>({...t,od:+(1.4+Math.random()*2.0).toFixed(2)}));
+}
+
+/* ---------------- Board geometry ---------------- */
+const cv=$('#plinko'),ctx=cv.getContext('2d');
+let DPR=Math.min(window.devicePixelRatio||1,2);
+let board={w:0,h:0,lanes:[]};
+let ball=null,raf=null,selectedPick=null;
+let bucketFx={}; // laneIndex -> {flash, shake} timers
+let needsRender=true;
+
+/* persistent render loop: always draws board + particles when needed */
+function tick(){
+  if(needsRender || particles.length || ball || Object.keys(bucketFx).length){
+    stepParticles();
+    decayBucketFx();
+    draw();
+    needsRender = particles.length>0 || !!ball || Object.keys(bucketFx).length>0;
+  }
+  requestAnimationFrame(tick);
+}
+function decayBucketFx(){
+  for(const k in bucketFx){
+    const fx=bucketFx[k];fx.t-=1;
+    if(fx.t<=0)delete bucketFx[k];
+  }
+}
+function requestRender(){needsRender=true;}
+
+function layout(){
+  const st=STAGES[state.stageIdx];
+  const roster=state.rosters[state.stageIdx];
+  const n=st.buckets;                 // number of matchups/buckets
+  const cssW=scrollEl.clientWidth||900;
+  const laneH=Math.max(96, Math.min(132, 720/n + 50));
+  const padTop=24, padBot=24;
+  const cssH=padTop+padBot+n*laneH;
+
+  board={w:cssW,h:cssH,lanes:[],laneH,padTop,
+    railW:Math.max(120,Math.min(180,cssW*0.23)),
+    bucketW:Math.max(104,Math.min(160,cssW*0.20))};
+
+  for(let i=0;i<n;i++){
+    const cy=padTop+i*laneH+laneH/2;
+    board.lanes.push({
+      i, cy,
+      left: roster[i*2],         // left team of matchup i
+      right: roster[i*2+1],      // right team of matchup i
+      bucket:{x:cssW/2, y:cy},
+      picked: (state.picks[state.stageIdx]||[]).find(p=>p && p.matchup===i)||null,
+    });
+  }
+  // size canvas
+  cv.style.width=cssW+'px'; cv.style.height=cssH+'px';
+  cv.width=cssW*DPR; cv.height=cssH*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+
+function pegRows(){return 5;}
+
+function draw(){
+  const {w,h,lanes,laneH,railW,bucketW}=board;
+  ctx.clearRect(0,0,w,h);
+  const accent='#50D2C1';
+
+  lanes.forEach(l=>{
+    const cx=w/2;
+    // matchup divider
+    ctx.strokeStyle='rgba(80,210,193,.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,l.cy+laneH/2);ctx.lineTo(w,l.cy+laneH/2);ctx.stroke();
+
+    // peg field between rails and bucket (both sides)
+    drawPegs(railW, cx-bucketW/2-6, l.cy, +1);
+    drawPegs(w-railW, cx+bucketW/2+6, l.cy, -1);
+
+    // center bucket (with flash + shake fx)
+    const fx=bucketFx[l.i];
+    const shake = fx?Math.sin(fx.t*1.3)*fx.t*0.5:0;
+    const flashA = fx?Math.min(1,fx.t/10):0;
+    const bw=bucketW, bh=laneH*0.62, bx=cx-bw/2+shake, by=l.cy-bh/2;
+    const isFinal=lanes.length===1;
+    const filled=!!l.picked;
+    if(fx){ // glow halo
+      ctx.save();
+      ctx.shadowColor=isFinal?'#D4A23A':accent;ctx.shadowBlur=30*flashA;
+    }
+    ctx.beginPath();roundRect(ctx,bx,by,bw,bh,10);
+    let fillBase = filled?hexA(isFinal?'#D4A23A':accent,.25):'rgba(7,39,35,.6)';
+    if(fx) fillBase = hexA(isFinal?'#D4A23A':accent, .25+0.45*flashA);
+    ctx.fillStyle=fillBase;ctx.fill();
+    ctx.lineWidth=filled||fx?2:1;
+    ctx.strokeStyle=filled||fx?(isFinal?'#D4A23A':accent):'rgba(80,210,193,.2)';
+    ctx.stroke();
+    if(fx)ctx.restore();
+    if(filled){
+      ctx.font='26px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(l.picked.team.f,cx+shake,l.cy-8);
+      ctx.font='700 12px Inter';ctx.fillStyle=isFinal?'#D4A23A':accent;
+      ctx.fillText(l.picked.team.nm,cx+shake,l.cy+14);
+    }else{
+      ctx.font='700 12px JetBrains Mono';ctx.fillStyle='rgba(244,241,234,.4)';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(isFinal?'🏆':('G'+(l.i+1)),cx,l.cy);
+    }
+
+    // team chips on rails
+    drawChip(l.left, 8, l.cy, railW-12, laneH*0.70, 'L', l);
+    drawChip(l.right, w-railW+4, l.cy, railW-12, laneH*0.70, 'R', l);
+  });
+
+  // particles (under ball)
+  drawParticles();
+
+  // ball with motion glow
+  if(ball){
+    ball.trail.forEach((t,i)=>{
+      const f=i/ball.trail.length;
+      ctx.beginPath();ctx.arc(t.x,t.y,ball.r*f*1.1,0,7);
+      ctx.fillStyle=hexA(ball.color,0.05+0.18*f);ctx.fill();
+    });
+    ctx.save();
+    ctx.shadowColor=ball.color;ctx.shadowBlur=22;
+    ctx.translate(ball.x,ball.y);ctx.scale(ball.sx,ball.sy);
+    const bg=ctx.createRadialGradient(-4,-4,1,0,0,ball.r);
+    bg.addColorStop(0,'#fff');bg.addColorStop(.45,ball.color);bg.addColorStop(1,'#06201c');
+    ctx.beginPath();ctx.arc(0,0,ball.r,0,7);ctx.fillStyle=bg;ctx.fill();
+    ctx.restore();
+    ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r+5,0,7);
+    ctx.strokeStyle=hexA(ball.color,.5);ctx.lineWidth=2;ctx.stroke();
+  }
+}
+
+function drawPegs(xStart,xEnd,cy,dir){
+  const rows=pegRows();
+  const span=Math.abs(xEnd-xStart);
+  for(let r=0;r<rows;r++){
+    const t=(r+0.5)/rows;
+    const x=xStart+(xEnd-xStart)*t;
+    const yo=Math.sin(r*1.6)*((board.laneH*0.5-14));
+    const offs=[-1,0,1];
+    offs.forEach(o=>{
+      const y=cy+o*(board.laneH*0.22)+ (r%2?6:-6);
+      ctx.beginPath();ctx.arc(x,y,3.2,0,7);
+      ctx.fillStyle='rgba(244,241,234,.45)';ctx.fill();
+    });
+  }
+}
+
+function drawChip(team,x,cy,wd,ht,side,lane){
+  if(!team)return;
+  const y=cy-ht/2;
+  const picked=lane.picked&&lane.picked.side===side;
+  ctx.beginPath();roundRect(ctx,x,y,wd,ht,11);
+  ctx.fillStyle=picked?'rgba(80,210,193,.16)':'rgba(7,39,35,.7)';ctx.fill();
+  ctx.lineWidth=picked?2:1;
+  ctx.strokeStyle=picked?'#50D2C1':'rgba(80,210,193,.18)';ctx.stroke();
+  ctx.textBaseline='middle';
+  // big flag in a rounded tile
+  const fsz=30, tileX=x+12, tileY=cy-fsz/2-4, tile=fsz+8;
+  ctx.save();
+  ctx.beginPath();roundRect(ctx,tileX-4,cy-tile/2,tile,tile,8);
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.fill();
+  ctx.font=fsz+'px serif';ctx.textAlign='center';
+  ctx.fillText(team.f, tileX-4+tile/2, cy+1);
+  ctx.restore();
+  const tx=tileX-4+tile+10;
+  ctx.textAlign='left';
+  ctx.font='700 14px Inter';
+  ctx.fillStyle=team.nm==='TBD'?'rgba(125,145,140,1)':'#F4F1EA';
+  const maxw=wd-(tx-x)-12;
+  ctx.fillText(fit(team.nm,maxw,'700 14px Inter'), tx, cy-9);
+  ctx.font='700 12px JetBrains Mono';ctx.fillStyle='#50D2C1';
+  ctx.fillText(team.od.toFixed(2)+'×', tx, cy+11);
+  lane[side==='L'?'lbox':'rbox']={x,y,w:wd,h:ht,team,side};
+}
+function fit(s,maxw,font){
+  ctx.save();ctx.font=font||'600 12px Inter';
+  let str=s;while(ctx.measureText(str).width>maxw&&str.length>3){str=str.slice(0,-1);}
+  if(str!==s)str=str.slice(0,-1)+'…';ctx.restore();return str;
+}
+function roundRect(c,x,y,w,h,r){c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* ---------------- Interaction ---------------- */
+cv.addEventListener('click',e=>{
+  if(state.animating)return;
+  const rect=cv.getBoundingClientRect();
+  const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  for(const l of board.lanes){
+    for(const box of [l.lbox,l.rbox]){
+      if(box&&box.team&&box.team.nm!=='TBD'&&x>=box.x&&x<=box.x+box.w&&y>=box.y&&y<=box.y+box.h){
+        return dropBall(l, box.side, box.team);
+      }
+    }
+  }
+});
+
+function dropBall(lane, side, team){
+  if(state.animating)return;
+  state.animating=true;
+  const ac=audio(); if(ac && ac.state==='suspended') ac.resume();
+  const isFinal=board.lanes.length===1;
+  const color=isFinal?'#D4A23A':'#50D2C1';
+  const startX = side==='L' ? (lane.lbox.x+lane.lbox.w) : (lane.rbox.x);
+  const endX = lane.bucket.x;
+  const startY=lane.cy, endY=lane.cy;
+  const path=computePath(startX,startY,endX,endY,side);
+  ball={x:path[0].x,y:path[0].y,r:14,sx:1,sy:1,trail:[],color};
+  spark(ball.x,ball.y,color,10,4); ping(660,0.06,'triangle',0.12); // launch pop
+  let seg=0,t=0;
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const speed=reduce?0.2:0.12;
+
+  function step(){
+    if(seg>=path.length-1){return landBall(lane,side,team,color);}
+    const a=path[seg],c=path[seg+1];
+    t+=speed;
+    const tt=Math.min(t,1);
+    ball.x=a.x+(c.x-a.x)*tt; ball.y=a.y+(c.y-a.y)*tt;
+    const sq=Math.sin(tt*Math.PI);
+    ball.sx=1+0.18*sq;ball.sy=1-0.18*sq;
+    ball.trail.push({x:ball.x,y:ball.y});if(ball.trail.length>11)ball.trail.shift();
+    followBall();
+    requestRender();
+    if(t>=1){ // crossed a peg row -> strike fx
+      spark(ball.x,ball.y,color,7,3.2); ripple(ball.x,ball.y,color); pegPing();
+      t=0;seg++;
+    }
+    raf=requestAnimationFrame(step);
+  }
+  step();
+}
+
+function computePath(sx,sy,ex,ey,side){
+  // horizontal travel with vertical plinko bounce that decays toward the bucket
+  const steps=pegRows()*2;
+  const pts=[{x:sx,y:sy}];
+  for(let i=1;i<=steps;i++){
+    const prog=i/steps;
+    const x=sx+(ex-sx)*prog;
+    const bounce=Math.sin(prog*Math.PI*3)*(board.laneH*0.20)*(1-prog);
+    const jitter=(Math.random()-0.5)*10*(1-prog);
+    pts.push({x, y:sy+bounce+jitter});
+  }
+  pts.push({x:ex,y:ey});
+  return pts;
+}
+
+function followBall(){
+  // keep ball roughly centered in the scroll viewport on small screens
+  const vh=scrollEl.clientHeight, st=scrollEl.scrollTop;
+  const by=ball.y;
+  if(by < st+vh*0.25) scrollEl.scrollTop = by - vh*0.4;
+  else if(by > st+vh*0.75) scrollEl.scrollTop = by - vh*0.6;
+}
+
+function landBall(lane,side,team,color){
+  // impact!
+  const isFinal=board.lanes.length===1;
+  burst(lane.bucket.x,lane.cy,color);
+  bucketFx[lane.i]={t:22};
+  thud(); chime(isFinal);
+  requestRender();
+  let frames=0;const floor=lane.cy;
+  function b(){
+    frames++;
+    const k=frames/16;
+    const bounce=Math.sin(k*Math.PI*2)*8*(1-k);
+    ball.y=floor+bounce; ball.x=lane.bucket.x;
+    ball.sx=1+0.16*(1-k);ball.sy=1-0.16*(1-k);
+    requestRender();
+    if(frames<16)raf=requestAnimationFrame(b);
+    else finishDrop(lane,side,team);
+  }
+  b();
+}
+
+function finishDrop(lane,side,team){
+  ball=null;
+  if(!state.picks[state.stageIdx])state.picks[state.stageIdx]=[];
+  state.picks[state.stageIdx][lane.i]={matchup:lane.i,side,team,round:STAGES[state.stageIdx].nm};
+  lane.picked={matchup:lane.i,side,team};
+  selectedPick={team,round:STAGES[state.stageIdx].nm,lane:lane.i};
+  state.rosters[state.stageIdx+1]=undefined;
+  state.animating=false;
+  requestRender();renderRounds();updateSlip();renderPicks();
+  showToast(`Picked <b>${team.f} ${team.nm}</b> → G${lane.i+1}. Tap "Lock in pick" to stake.`);
+}
+
+/* ---------------- Stake slip ---------------- */
+['input','change'].forEach(ev=>stakeEl.addEventListener(ev,updateSlip));
+document.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{
+  stakeEl.value=b.dataset.amt==='max'?Math.floor(state.balance):b.dataset.amt;updateSlip();
+}));
+function updateSlip(){
+  if(selectedPick){
+    pPick.innerHTML=`<span class="pick-pill">${selectedPick.team.f}<span class="nm">${selectedPick.team.nm}</span></span>`;
+    pOdds.textContent=selectedPick.team.od.toFixed(2)+'×';
+  }else{pPick.innerHTML=`<span class="pick-pill"><span class="nm">none</span></span>`;pOdds.textContent='—';}
+  const stake=parseFloat(stakeEl.value)||0;
+  payoutEl.textContent=(selectedPick&&stake>0)?(stake*selectedPick.team.od).toFixed(2)+' USDC':'—';
+  confirmBtn.disabled=!(selectedPick&&stake>0&&stake<=state.balance&&!state.animating);
+}
+confirmBtn.addEventListener('click',()=>{
+  const stake=parseFloat(stakeEl.value)||0;
+  if(!selectedPick||stake<=0||stake>state.balance)return;
+  state.balance-=stake;
+  balEl.textContent=state.balance.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  showToast(`Staked <b>${stake} USDC</b> on ${selectedPick.team.f} ${selectedPick.team.nm} · payout <b>${(stake*selectedPick.team.od).toFixed(2)}</b>`);
+  selectedPick=null;updateSlip();
+});
+
+function renderPicks(){
+  const all=[];
+  state.picks.forEach((arr,si)=>{(arr||[]).forEach(p=>{if(p)all.push({...p,si});});});
+  if(!all.length){picksList.style.display='none';return;}
+  picksList.style.display='block';
+  picksBody.innerHTML=all.map(p=>`<div class="pk"><span class="fl">${p.team.f}</span><span>${p.team.nm}</span><span class="rd">${STAGES[p.si].nm}</span></div>`).join('');
+}
+
+function showToast(html){toast.innerHTML=html;toast.classList.add('show');clearTimeout(showToast._t);showToast._t=setTimeout(()=>toast.classList.remove('show'),3800);}
+
+/* ---------------- Boot ---------------- */
+window.addEventListener('resize',()=>{DPR=Math.min(window.devicePixelRatio||1,2);layout();});
+renderRounds();selectStage(0);
+requestAnimationFrame(tick);
+document.getElementById('sound').addEventListener('click',function(){
+  muted=!muted; this.textContent=muted?'🔇':'🔊';
+  this.style.color=muted?'var(--muted)':'var(--mint)';
+  if(!muted){const ac=audio();if(ac&&ac.state==='suspended')ac.resume();ping(660,0.08);}
+});
+</script>
+</body>
+</html>
